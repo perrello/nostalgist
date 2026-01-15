@@ -140,7 +140,7 @@ export class EmulatorFileSystem {
     const maxWaitTime = 100
     let waitTime = 0
 
-    while (!this.emscriptenModule?.FS && waitTime < maxWaitTime) {
+    while (!this.emscriptenModule.asm && waitTime < maxWaitTime) {
       await delay(10)
       checkIsAborted(this.signal)
       waitTime += 5

@@ -74,19 +74,6 @@ function isEsmScript(js: string) {
   return js.includes('import.meta.url')
 }
 
-function isModularizedFactory(js: string) {
-  return js.includes('function(moduleArg') && js.includes('return moduleArg.ready')
-}
-
-function detectExportName(js: string, fallback: string) {
-  return (
-    /module\.exports\s*=\s*([A-Za-z_$][\w$]*)/.exec(js)?.[1] ||
-    /var\s+([A-Za-z_$][\w$]*)\s*=\s*\(\(\)\s*=>/.exec(js)?.[1] ||
-    /function\s+([A-Za-z_$][\w$]*)\s*\(moduleArg/.exec(js)?.[1] ||
-    fallback
-  )
-}
-
 async function patchCoreJs({ js, name }: { js: ResolvableFile; name: string }) {
   let jsContent = await js.getText()
 
@@ -124,32 +111,6 @@ async function patchCoreJs({ js, name }: { js: ResolvableFile; name: string }) {
       return factory ? factory(Module) : null;
     }
     `
-  } else if (isModularizedFactory(jsContent)) {
-    const exportName = detectExportName(jsContent, name)
-
-    jsContent = `${jsContent}
-      export async function getEmscripten({ Module } = {}) {
-        const fromGlobal = (typeof globalThis !== "undefined") ? globalThis["${exportName}"] : null;
-        const inScope = (typeof ${exportName} === "function") ? ${exportName} : null;
-        const factory = fromGlobal || inScope;
-        if (!factory) return null;
-
-        const result = await factory(Module);
-
-        const moduleRef =
-          (result && typeof result === "object" && "Module" in result)
-            ? result.Module
-            : (result || Module || {});
-
-        return {
-          AL: moduleRef.AL ?? null,
-          Browser: moduleRef.Browser ?? null,
-          JSEvents: moduleRef.JSEvents ?? null,
-          Module: moduleRef,
-          exit: moduleRef._emscripten_force_exit ?? null
-        };
-      }
-      `
   }
   return jsContent
 }
@@ -279,8 +240,9 @@ export function isZip(uint8Array: Uint8Array) {
 }
 
 const originalSetImmediate = globalThis.setImmediate
-function setImmediate(callback: (...args: any[]) => void, ...args: any[]) {
-  return originalSetImmediate ? originalSetImmediate(callback, ...args) : setTimeout(callback, 0, ...args)
+function setImmediate(callback: any) {
+  // eslint-disable-next-line @typescript-eslint/no-implied-eval
+  return originalSetImmediate ? originalSetImmediate(callback) : setTimeout(callback, 0)
 }
 
 export function installSetImmediatePolyfill() {
