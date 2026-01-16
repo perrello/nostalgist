@@ -68,6 +68,8 @@ export class EmulatorOptions {
 
   sram?: ResolvableFile | undefined
 
+  sramType?: 'sav' | 'srm'
+
   state?: ResolvableFile | undefined
 
   waitForInteraction: ((params: { done: () => void }) => void) | undefined
@@ -127,6 +129,7 @@ export class EmulatorOptions {
     this.respondToGlobalEvents = options.respondToGlobalEvents ?? true
     this.signal = options.signal
     this.size = options.size ?? 'auto'
+    this.sramType = options.sramType ?? 'srm'
     // eslint-disable-next-line sonarjs/deprecation
     this.waitForInteraction = options.waitForInteraction
     this.element = this.getElement()

@@ -56,6 +56,11 @@ export class EmulatorFileSystem {
     FS.mkdirTree(directory)
   }
 
+  readdir(path: string) {
+    const { FS } = this
+    return FS.readdir(path)
+  }
+
   readFile(path: string, encoding: 'binary' | 'utf8' = 'utf8') {
     const { FS } = this
     return FS.readFile(path, { encoding })

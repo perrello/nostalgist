@@ -86,7 +86,11 @@ export class Emulator {
   }
 
   private get sramFilePath() {
-    return path.join(this.sramFileDirectory, `${this.romBaseName}.srm`)
+    return path.join(this.sramFileDirectory, `${this.romBaseName}.${this.sramFileType}`)
+  }
+
+  private get sramFileType() {
+    return this.options.sramType
   }
 
   private get stateFileDirectory() {
@@ -135,6 +139,17 @@ export class Emulator {
 
   getStatus() {
     return this.gameStatus
+  }
+
+  public hasSRAM(): boolean {
+    const path = this.sramFileDirectory
+    try {
+      const files = this.fs.readdir(path)
+      const result = files.filter((name: string) => name !== '.' && name !== '..')
+      return result.length > 0
+    } catch {
+      return true
+    }
   }
 
   async launch() {
@@ -249,6 +264,9 @@ export class Emulator {
   async saveSRAM() {
     this.fs.unlink(this.sramFilePath)
     this.callCommand('_cmd_savefiles')
+    if (!this.hasSRAM) {
+      return null
+    }
     const buffer = await this.fs.waitForFile(this.sramFilePath)
     const blob = new Blob([buffer], { type: 'application/octet-stream' })
     return blob

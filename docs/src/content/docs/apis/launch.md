@@ -178,6 +178,12 @@ const nostalgist = await Nostalgist.launch({
 
     The initial SRAM to be loaded after launching.
 
+  + #### `sramType`
+
+    **type:** `srm | sav`
+
+    Sets the save file battery type used by Nostalgist internally. Use `'sav'` for cores like melonDS. Defaults to `'srm'`.
+
   + #### `shader`
 
     **type:** `string`
