@@ -141,17 +141,6 @@ export class Emulator {
     return this.gameStatus
   }
 
-  public hasSRAM(): boolean {
-    const path = this.sramFileDirectory
-    try {
-      const files = this.fs.readdir(path)
-      const result = files.filter((name: string) => name !== '.' && name !== '..')
-      return result.length > 0
-    } catch {
-      return true
-    }
-  }
-
   async launch() {
     const { element, respondToGlobalEvents, signal, style, waitForInteraction } = this.options
     updateStyle(element, style)
@@ -391,6 +380,17 @@ export class Emulator {
     const dateString = `${year}${month}${day}-${hour}${minute}${second}`
     const baseName = this.romBaseName
     return `${baseName}-${dateString}.png`
+  }
+
+  private hasSRAM(): boolean {
+    const path = this.sramFileDirectory
+    try {
+      const files = this.fs.readdir(path)
+      const result = files.filter((name: string) => name !== '.' && name !== '..')
+      return result.length > 0
+    } catch {
+      return true
+    }
   }
 
   private keyboardDown(code: string) {
