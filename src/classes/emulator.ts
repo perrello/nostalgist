@@ -86,7 +86,11 @@ export class Emulator {
   }
 
   private get sramFilePath() {
-    return path.join(this.sramFileDirectory, `${this.romBaseName}.srm`)
+    return path.join(this.sramFileDirectory, `${this.romBaseName}.${this.sramFileType}`)
+  }
+
+  private get sramFileType() {
+    return this.options.sramType
   }
 
   private get stateFileDirectory() {

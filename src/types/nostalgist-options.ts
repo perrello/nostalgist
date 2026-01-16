@@ -147,6 +147,11 @@ export interface NostalgistOptions {
    */
   sram?: ResolvableFileInput
 
+  /**
+   * The type of battery save the core generates.
+   */
+  sramType?: 'sav' | 'srm'
+
   respondToGlobalEvents?: boolean
 
   /**

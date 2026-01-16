@@ -125,6 +125,10 @@ Please refer to [nostalgist.js.org/apis](https://nostalgist.js.org/apis).
 
   The high-performance, preservation-focused netflix style emulation engine powered by Nostalgist.
 
++ [Foxol](https://play.foxol.app)
+
+  Foxol is a modern emulator platform with multiplayer, cloud saves, cheats, and deep customization across every device.
+
 
 ### Credits
 
