@@ -6,6 +6,7 @@ export interface RetroArchEmscriptenModule extends EmscriptenModule {
   EmscriptenSendCommand?: (command: string) => void
   ERRNO_CODES: any
   FS: any
+  mainScriptUrlOrBlob: string
   monitorRunDependencies: (left?: number) => Promise<void> | void
   PATH: any
   preRun: ((...args: any) => void)[]
