@@ -5,44 +5,41 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
       - uses: actions/setup-node@v4
         with:
           node-version: 24.3.0
-          cache: pnpm
-      - run: pnpm i
-      - run: pnpm lint
+          cache: npm
+      - run: npm install
+      - run: npm run lint
 
   test-integration:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
       - uses: actions/setup-node@v4
         with:
           node-version: 24.3.0
-          cache: pnpm
-      - run: pnpm i
-      - run: pnpm test:integration
+          cache: npm
+      - run: npm install
+      - run: npm run test:integration
 
   test-e2e:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v3
       - uses: actions/setup-node@v4
         with:
           node-version: 24.3.0
-          cache: pnpm
+          cache: npm
       - uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright
-      - run: pnpm i
-      - run: pnpm playwright install chromium
-      - run: pnpm build
-      - run: pnpm test:e2e
+      - run: npm install
+      - run: npx playwright install chromium
+      - run: npm run build
+      - run: npm run test:e2e
       - uses: actions/upload-artifact@v4
         if: always()
         with:
