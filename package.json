@@ -1,25 +1,22 @@
 {
   "name": "nostalgist",
   "description": "Nostalgist.js is a JavaScript library that allows you to run emulators of retro consoles within web browsers.",
-  "version": "0.0.0",
-  "license": "MIT",
-  "type": "module",
-  "author": {
-    "name": "arianrhodsandlot",
-    "email": "theguidanceofawhitetower@gmail.com"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/arianrhodsandlot/nostalgist"
-  },
-  "bugs": {
-    "url": "https://github.com/arianrhodsandlot/nostalgist/issues"
-  },
   "keywords": [
     "retroarch",
     "emulator",
     "emscripten"
   ],
+  "bugs": {
+    "url": "https://github.com/arianrhodsandlot/nostalgist/issues",
+    "email": "theguidanceofawhitetower@gmail.com"
+  },
+  "repository": "arianrhodsandlot/nostalgist",
+  "license": "MIT",
+  "author": {
+    "name": "arianrhodsandlot",
+    "email": "theguidanceofawhitetower@gmail.com"
+  },
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
@@ -28,10 +25,10 @@
     }
   },
   "main": "./dist/nostalgist.umd.js",
+  "jsdelivr": "./dist/nostalgist.umd.js",
   "module": "./dist/nostalgist.js",
   "browser": "./dist/nostalgist.umd.js",
   "types": "./dist/types/index.d.ts",
-  "jsdelivr": "./dist/nostalgist.umd.js",
   "files": [
     "dist"
   ],
@@ -42,11 +39,17 @@
     "docs:build": "astro build --root docs",
     "docs:dev": "astro dev --root docs",
     "lint": "eslint src tests",
+    "prepare": "simple-git-hooks && pnpm build",
     "test": "node --run=test:integration && node --run=test:e2e",
     "test:e2e": "playwright test -c tests/e2e",
-    "test:integration": "node --test tests/integration/**/*.spec.ts",
-    "dev:setup": "simple-git-hooks",
-    "prepublishOnly": "npm run build"
+    "test:integration": "node --test tests/integration/**/*.spec.ts"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "pnpm lint-staged && pnpm build"
+  },
+  "lint-staged": {
+    "*.?(m|c)@(j|t)s?(x)": "eslint --fix",
+    "package.json": "pnpm dlx sort-package-json"
   },
   "dependencies": {
     "@types/emscripten": "1.41.5",
@@ -75,8 +78,18 @@
     "typescript": "5.9.3",
     "vite": "7.3.1"
   },
+  "packageManager": "pnpm@10.28.0",
   "engines": {
-    "node": ">=18"
+    "node": ">=24.7.0"
   },
-  "packageManager": "pnpm@10.28.0"
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "simple-git-hooks",
+      "unrs-resolver"
+    ],
+    "ignoredBuiltDependencies": [
+      "sharp"
+    ]
+  }
 }
