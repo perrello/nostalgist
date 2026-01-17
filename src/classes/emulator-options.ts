@@ -5,7 +5,7 @@ import type { RetroArchEmscriptenModuleOptions } from '../types/retroarch-emscri
 import { ResolvableFile } from './resolvable-file.ts'
 
 // Copied from https://github.com/sindresorhus/is-plain-obj/blob/main/index.js
-function isPlainObject(value: unknown) {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (typeof value !== 'object' || value === null) {
     return false
   }
@@ -18,18 +18,28 @@ function isPlainObject(value: unknown) {
   )
 }
 
-function isValidCacheKey(cacheKey: unknown) {
+type CacheKey = Record<string, unknown> | string
+type CacheField = 'bios' | 'core' | 'rom' | 'shader' | 'sram' | 'state'
+
+function isValidCacheKey(cacheKey: unknown): cacheKey is CacheKey {
   return typeof cacheKey === 'string' || isPlainObject(cacheKey)
 }
 
-function getCacheStore() {
+function normalizeSramTypes(value?: string | string[]) {
+  if (!value) {
+    return
+  }
+  return Array.isArray(value) ? value : [value]
+}
+
+function getCacheStore(): Record<CacheField, Map<CacheKey, unknown>> {
   return {
-    bios: new Map<NonNullable<NostalgistOptions['bios']>, EmulatorOptions['bios']>(),
-    core: new Map<NonNullable<NostalgistOptions['core']>, EmulatorOptions['core']>(),
-    rom: new Map<NonNullable<NostalgistOptions['rom']>, EmulatorOptions['rom']>(),
-    shader: new Map<NonNullable<NostalgistOptions['shader']>, EmulatorOptions['shader']>(),
-    sram: new Map<NonNullable<NostalgistOptions['sram']>, EmulatorOptions['sram']>(),
-    state: new Map<NonNullable<NostalgistOptions['state']>, EmulatorOptions['state']>(),
+    bios: new Map<CacheKey, unknown>(),
+    core: new Map<CacheKey, unknown>(),
+    rom: new Map<CacheKey, unknown>(),
+    shader: new Map<CacheKey, unknown>(),
+    sram: new Map<CacheKey, unknown>(),
+    state: new Map<CacheKey, unknown>(),
   }
 }
 
@@ -67,11 +77,15 @@ export class EmulatorOptions {
    */
   size?: 'auto' | { height: number; width: number }
 
-  sram?: ResolvableFile | undefined
+  sram: ResolvableFile | undefined = undefined
 
-  sramType?: 'sav' | 'srm'
+  sramFiles: ResolvableFile[] | undefined = undefined
 
-  state?: ResolvableFile | undefined
+  sramType: string | undefined = undefined
+
+  sramTypes: string[] | undefined = undefined
+
+  state: ResolvableFile | undefined = undefined
 
   waitForInteraction: ((params: { done: () => void }) => void) | undefined
 
@@ -131,7 +145,8 @@ export class EmulatorOptions {
     this.runMainArgs = options.runMainArgs
     this.signal = options.signal
     this.size = options.size ?? 'auto'
-    this.sramType = options.sramType ?? 'srm'
+    this.sramTypes = normalizeSramTypes(options.sramTypes)
+    this.sramType = this.sramTypes?.[0] ?? options.sramType ?? 'srm'
     // eslint-disable-next-line sonarjs/deprecation
     this.waitForInteraction = options.waitForInteraction
     this.element = this.getElement()
@@ -173,16 +188,10 @@ export class EmulatorOptions {
     }
     for (const key in this.cache) {
       const field = key as keyof typeof this.cache
-      if (this.cache[field]) {
-        const cache = EmulatorOptions.cacheStorage[field]
-        const cacheKey: any = field === 'rom' ? this.getRomInput() : this.nostalgistOptions[field]
-        if (isValidCacheKey(cacheKey)) {
-          const cacheValue = cache.get(cacheKey)
-          if (cacheValue) {
-            this[field] = cacheValue as any
-            continue
-          }
-        }
+      const cachedValue = this.getCachedValue(field)
+      if (cachedValue) {
+        this[field] = cachedValue as any
+        continue
       }
       const method = loadMethodMap[field]
       const promise = method.call(this)
@@ -194,20 +203,34 @@ export class EmulatorOptions {
   saveToCache() {
     for (const key in this.cache) {
       const field = key as keyof typeof this.cache
-      if (this.cache[field]) {
-        const cache = EmulatorOptions.cacheStorage[field]
-        const cacheKey: any = field === 'rom' ? this.getRomInput() : this.nostalgistOptions[field]
-        const cacheValue: any = this[field]
-        if (isValidCacheKey(cacheKey) && cacheValue) {
-          cache.set(cacheKey, cacheValue)
-        }
+      if (!this.cache[field]) {
+        continue
+      }
+      const cacheKey = this.getCacheKey(field)
+      const cacheValue: any = this[field]
+      if (isValidCacheKey(cacheKey) && cacheValue) {
+        EmulatorOptions.cacheStorage[field].set(cacheKey, cacheValue)
       }
     }
   }
 
   async updateSRAM() {
-    if (this.nostalgistOptions.sram) {
-      this.sram = await ResolvableFile.create(this.nostalgistOptions.sram)
+    let sramInput = this.getSramInput()
+    if (!sramInput) {
+      return
+    }
+    sramInput = await getResult(sramInput)
+    if (!sramInput) {
+      return
+    }
+
+    const rawFiles = Array.isArray(sramInput) ? sramInput : [sramInput]
+    const resolvedFiles = await Promise.all(rawFiles.map((raw) => ResolvableFile.create(raw)))
+    if (this.nostalgistOptions.sramFiles || rawFiles.length > 1) {
+      this.sramFiles = resolvedFiles
+      this.sram = undefined
+    } else {
+      this.sram = resolvedFiles[0]
     }
   }
 
@@ -215,6 +238,27 @@ export class EmulatorOptions {
     if (this.nostalgistOptions.state) {
       this.state = await ResolvableFile.create(this.nostalgistOptions.state)
     }
+  }
+
+  private getCachedValue(field: keyof typeof this.cache) {
+    if (!this.cache[field]) {
+      return
+    }
+    const cacheKey = this.getCacheKey(field)
+    if (!isValidCacheKey(cacheKey)) {
+      return
+    }
+    return EmulatorOptions.cacheStorage[field].get(cacheKey)
+  }
+
+  private getCacheKey(field: keyof typeof this.cache) {
+    if (field === 'rom') {
+      return this.getRomInput()
+    }
+    if (field === 'sram') {
+      return this.getSramInput()
+    }
+    return this.nostalgistOptions[field]
   }
 
   private getElement() {
@@ -246,6 +290,10 @@ export class EmulatorOptions {
 
   private getRomInput() {
     return this.nostalgistOptions.roms ?? this.nostalgistOptions.rom
+  }
+
+  private getSramInput() {
+    return this.nostalgistOptions.sramFiles ?? this.nostalgistOptions.sram
   }
 
   private async updateBios() {

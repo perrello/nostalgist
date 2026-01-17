@@ -162,9 +162,19 @@ export interface NostalgistOptions {
   sram?: ResolvableFileInput
 
   /**
+   * Multiple SRAM files to be loaded after launching.
+   */
+  sramFiles?: ResolvableFileInput | ResolvableFileInputs
+
+  /**
    * The type of battery save the core generates.
    */
-  sramType?: 'sav' | 'srm'
+  sramType?: string
+
+  /**
+   * Types for multiple SRAM files. The order should match `sramFiles`.
+   */
+  sramTypes?: string | string[]
 
   respondToGlobalEvents?: boolean
 

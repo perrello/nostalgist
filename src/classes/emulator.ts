@@ -90,7 +90,7 @@ export class Emulator {
   }
 
   private get sramFileType() {
-    return this.options.sramType
+    return this.options.sramTypes?.[0] ?? this.options.sramType
   }
 
   private get stateFileDirectory() {
@@ -366,6 +366,28 @@ export class Emulator {
     return keyboardCodeMap[key] || ''
   }
 
+  private getSramWriteTargets() {
+    let sramFiles: ResolvableFile[] = []
+    if (this.options.sramFiles?.length) {
+      sramFiles = this.options.sramFiles
+    } else if (this.options.sram) {
+      sramFiles = [this.options.sram]
+    }
+    if (sramFiles.length === 0) {
+      return []
+    }
+
+    const sramTypes = this.options.sramTypes ?? []
+    return sramFiles.map((file, index) => {
+      const type = sramTypes[index] ?? sramTypes[0]
+      const fileName = type ? `${this.romBaseName}.${type}` : file.name || `${this.romBaseName}.${this.sramFileType}`
+      return {
+        file,
+        path: path.join(this.sramFileDirectory, fileName),
+      }
+    })
+  }
+
   private guessScreenshotFileName() {
     const date = new Date()
     const year = date.getFullYear() % 1000
@@ -491,7 +513,8 @@ export class Emulator {
 
   private async setupFileSystem() {
     const { Module } = this.getEmscripten()
-    const { bios, rom, signal, sram, state } = this.options
+    const { bios, rom, signal, state } = this.options
+    const sramWriteTargets = this.getSramWriteTargets()
 
     for (const { name } of bios) {
       if (!name) {
@@ -504,7 +527,7 @@ export class Emulator {
     if (state) {
       this.fs.mkdirTree(this.stateFileDirectory)
     }
-    if (sram) {
+    if (sramWriteTargets.length > 0) {
       this.fs.mkdirTree(this.sramFileDirectory)
     }
 
@@ -515,8 +538,8 @@ export class Emulator {
     if (state) {
       filePromises.push(this.fs.writeFile(`${this.stateFilePath}.auto`, state))
     }
-    if (sram) {
-      filePromises.push(this.fs.writeFile(this.sramFilePath, sram))
+    if (sramWriteTargets.length > 0) {
+      filePromises.push(...sramWriteTargets.map(({ file, path }) => this.fs.writeFile(path, file)))
     }
     await Promise.all(filePromises)
     checkIsAborted(signal)
