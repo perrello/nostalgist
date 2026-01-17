@@ -1,7 +1,7 @@
 import type { Nostalgist } from '..'
-import type { ResolvableFileInput, ResolvableFileInputs } from '../classes/resolvable-file'
+import type { ResolvableFile, ResolvableFileInput, ResolvableFileInputs } from '../classes/resolvable-file'
 import type { RetroArchConfig } from './retroarch-config'
-import type { RetroArchEmscriptenModuleOptions } from './retroarch-emscripten'
+import type { RetroArchEmscriptenModule, RetroArchEmscriptenModuleOptions } from './retroarch-emscripten'
 
 export interface NostalgistCoreDict {
   /** the name of core */
@@ -15,6 +15,16 @@ export interface NostalgistCoreDict {
 }
 
 export type NostalgistResolveFileFunction = (file: string, options: NostalgistOptions) => ResolvableFileInput
+
+export interface RunMainArgsContext {
+  args: string[]
+  configPath: string
+  contentPaths: string[]
+  module: RetroArchEmscriptenModule
+  roms: ResolvableFile[]
+}
+
+export type RunMainArgsHandler = (context: RunMainArgsContext) => string[] | undefined
 
 export interface NostalgistOptions {
   /**
@@ -119,6 +129,10 @@ export interface NostalgistOptions {
    * ```
    */
   rom?: ResolvableFileInput | ResolvableFileInputs
+  /**
+   * Alias of `rom`. Useful when passing multiple ROMs for subsystem boot.
+   */
+  roms?: ResolvableFileInput | ResolvableFileInputs
 
   /**
    * The name of the shader to be used.
@@ -180,6 +194,12 @@ export interface NostalgistOptions {
   runEmulatorManually: boolean
 
   /**
+   * Customize arguments passed to RetroArch's main function.
+   * If a list is returned, it replaces the default args.
+   */
+  runMainArgs?: RunMainArgsHandler
+
+  /**
    * An option to override the `Module` object for Emscripten. See [Module object](https://emscripten.org/docs/api_reference/module.html).
    *
    * This is a low level option and not well tested, so use it at your own risk.
@@ -214,6 +234,7 @@ export type NostalgistOptionsPartial = Partial<NostalgistOptions>
 
 export type NostalgistLaunchOptions = NostalgistOptionsPartial & Pick<NostalgistOptions, 'core'>
 interface NostalgistLaunchRomObjectOptions extends Omit<NostalgistOptionsPartial, 'core'> {
-  rom: ResolvableFileInput | ResolvableFileInputs
+  rom?: ResolvableFileInput | ResolvableFileInputs
+  roms?: ResolvableFileInput | ResolvableFileInputs
 }
 export type NostalgistLaunchRomOptions = NostalgistLaunchRomObjectOptions | ResolvableFileInput | ResolvableFileInputs

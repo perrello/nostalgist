@@ -438,18 +438,28 @@ export class Emulator {
     checkIsAborted(this.options.signal)
     const { Module } = this.getEmscripten()
     const { arguments: raArgs = [] } = Module
-    const { rom, signal } = this.options
-    if (!Module.arguments && rom.length > 0) {
-      const [{ name }] = rom
-      raArgs.push(path.join(EmulatorFileSystem.contentDirectory, name))
+    const { rom, runMainArgs, signal } = this.options
+    const contentPaths = rom.map((file) => path.join(EmulatorFileSystem.contentDirectory, file.name))
+    if (!Module.arguments && contentPaths.length > 0) {
+      raArgs.push(contentPaths[0])
     }
 
-    raArgs.push('-c', EmulatorFileSystem.configPath)
+    const overrideArgs = runMainArgs?.({
+      args: raArgs,
+      configPath: EmulatorFileSystem.configPath,
+      contentPaths,
+      module: Module,
+      roms: rom,
+    })
+    const finalArgs = Array.isArray(overrideArgs) ? overrideArgs : raArgs
+    if (!finalArgs.includes('-c') && !finalArgs.includes('--config')) {
+      finalArgs.push('-c', EmulatorFileSystem.configPath)
+    }
 
     installSetImmediatePolyfill()
 
     this.recordGlobalDOMEventListeners()
-    Module.callMain(raArgs)
+    Module.callMain(finalArgs)
     for (const [eventTarget] of this.globalDOMEventListeners) {
       // @ts-expect-error the `addEventListener` here is the modified one attached in `recordGlobalDOMEventListeners`
       delete eventTarget.addEventListener

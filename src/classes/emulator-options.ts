@@ -57,6 +57,7 @@ export class EmulatorOptions {
   emscriptenModule: RetroArchEmscriptenModuleOptions
   respondToGlobalEvents: boolean
   rom: ResolvableFile[] = []
+  runMainArgs?: NostalgistOptions['runMainArgs']
   shader: ResolvableFile[] = []
   signal?: AbortSignal | undefined
   /**
@@ -127,6 +128,7 @@ export class EmulatorOptions {
 
     this.emscriptenModule = options.emscriptenModule ?? {}
     this.respondToGlobalEvents = options.respondToGlobalEvents ?? true
+    this.runMainArgs = options.runMainArgs
     this.signal = options.signal
     this.size = options.size ?? 'auto'
     this.sramType = options.sramType ?? 'srm'
@@ -173,7 +175,7 @@ export class EmulatorOptions {
       const field = key as keyof typeof this.cache
       if (this.cache[field]) {
         const cache = EmulatorOptions.cacheStorage[field]
-        const cacheKey: any = this.nostalgistOptions[field]
+        const cacheKey: any = field === 'rom' ? this.getRomInput() : this.nostalgistOptions[field]
         if (isValidCacheKey(cacheKey)) {
           const cacheValue = cache.get(cacheKey)
           if (cacheValue) {
@@ -194,7 +196,7 @@ export class EmulatorOptions {
       const field = key as keyof typeof this.cache
       if (this.cache[field]) {
         const cache = EmulatorOptions.cacheStorage[field]
-        const cacheKey: any = this.nostalgistOptions[field]
+        const cacheKey: any = field === 'rom' ? this.getRomInput() : this.nostalgistOptions[field]
         const cacheValue: any = this[field]
         if (isValidCacheKey(cacheKey) && cacheValue) {
           cache.set(cacheKey, cacheValue)
@@ -240,6 +242,10 @@ export class EmulatorOptions {
     }
 
     throw new TypeError('invalid element')
+  }
+
+  private getRomInput() {
+    return this.nostalgistOptions.roms ?? this.nostalgistOptions.rom
   }
 
   private async updateBios() {
@@ -289,7 +295,8 @@ export class EmulatorOptions {
   }
 
   private async updateRom() {
-    let { resolveRom, rom } = this.nostalgistOptions
+    const { resolveRom } = this.nostalgistOptions
+    let rom = this.getRomInput()
     if (!rom) {
       return
     }
