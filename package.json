@@ -39,17 +39,17 @@
     "docs:build": "astro build --root docs",
     "docs:dev": "astro dev --root docs",
     "lint": "eslint src tests",
-    "prepare": "simple-git-hooks && pnpm build",
+    "prepare": "simple-git-hooks && npm run build",
     "test": "node --run=test:integration && node --run=test:e2e",
     "test:e2e": "playwright test -c tests/e2e",
     "test:integration": "node --test tests/integration/**/*.spec.ts"
   },
   "simple-git-hooks": {
-    "pre-commit": "pnpm lint-staged && pnpm build"
+    "pre-commit": "npx lint-staged && npm run build"
   },
   "lint-staged": {
     "*.?(m|c)@(j|t)s?(x)": "eslint --fix",
-    "package.json": "pnpm dlx sort-package-json"
+    "package.json": "npx sort-package-json"
   },
   "dependencies": {
     "@types/emscripten": "1.41.5",
@@ -78,18 +78,8 @@
     "typescript": "5.9.3",
     "vite": "7.3.1"
   },
-  "packageManager": "pnpm@10.28.0",
+  "packageManager": "npm@10.9.0",
   "engines": {
     "node": ">=24.7.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "simple-git-hooks",
-      "unrs-resolver"
-    ],
-    "ignoredBuiltDependencies": [
-      "sharp"
-    ]
   }
 }
