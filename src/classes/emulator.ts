@@ -471,10 +471,10 @@ export class Emulator {
 
     const { getEmscripten } = await importCoreJsAsESM(core)
     checkIsAborted(this.options.signal)
-    const emscripten: EmulatorEmscripten = await getEmscripten({ Module: initialModule })
+    const emscripten = await getEmscripten({ Module: initialModule })
     checkIsAborted(this.options.signal)
-    this.emscripten = emscripten
-    const { Module } = emscripten
+    const Module = (emscripten as EmulatorEmscripten).Module ?? emscripten
+    this.emscripten = { ...(emscripten as EmulatorEmscripten), Module }
     await Module.monitorRunDependencies()
     checkIsAborted(this.options.signal)
   }
