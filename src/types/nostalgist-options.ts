@@ -10,8 +10,11 @@ export interface NostalgistCoreDict {
   /** the resolvable file of core's js file */
   js: ResolvableFileInput
 
-  /** the resolvable file of core's wasm file */
-  wasm: ResolvableFileInput
+  /**
+   * The resolvable file of core's wasm file.
+   * Optional when `loadWasmBinary` is `false`.
+   */
+  wasm?: ResolvableFileInput
 }
 
 export type NostalgistResolveFileFunction = (file: string, options: NostalgistOptions) => ResolvableFileInput
@@ -50,6 +53,13 @@ export interface NostalgistOptions {
    * If it's `'auto'`, the canvas element will keep its original size, or it's width and height will be updated as specified.
    */
   size?: 'auto' | { height: number; width: number }
+
+  /**
+   * Whether to resolve and pass core wasm as `Module.wasmBinary`.
+   * Disable this if the wasm is loaded externally (e.g. via `locateFile`).
+   * @defaultValue true
+   */
+  loadWasmBinary?: boolean
 
   core: NostalgistCoreDict | string
 

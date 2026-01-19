@@ -463,9 +463,11 @@ export class Emulator {
   }
 
   private async setupEmscripten() {
-    const { core, element, emscriptenModule } = this.options
-    const { wasm } = core
-    const moduleOptions = { canvas: element, preRun: [], wasmBinary: await wasm.getArrayBuffer(), ...emscriptenModule }
+    const { core, element, emscriptenModule, loadWasmBinary } = this.options
+    const moduleOptions = { canvas: element, preRun: [], ...emscriptenModule }
+    if (loadWasmBinary && core.wasm) {
+      moduleOptions.wasmBinary = await core.wasm.getArrayBuffer()
+    }
     const initialModule = getEmscriptenModuleOverrides(moduleOptions)
     initialModule.preRun?.push(() => initialModule.FS.init(() => this.stdin()))
 

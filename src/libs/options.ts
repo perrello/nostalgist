@@ -109,6 +109,7 @@ async function extractCoreWithCache(core: string) {
 export function getDefaultOptions() {
   const defaultOptions: Omit<NostalgistOptions, 'core'> = {
     element: '',
+    loadWasmBinary: true,
     retroarchConfig: getDefaultRetroarchConfig(),
     retroarchCoreConfig: {},
     runEmulatorManually: false,

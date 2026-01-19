@@ -46,7 +46,7 @@ export class EmulatorOptions {
     js: ResolvableFile
 
     /** the core's resolvable wasm file */
-    wasm: ResolvableFile
+    wasm?: ResolvableFile
   } = {} as any
   element: HTMLCanvasElement
   /**
@@ -55,6 +55,7 @@ export class EmulatorOptions {
    * This is a low level option and not well tested, so use it at your own risk.
    */
   emscriptenModule: RetroArchEmscriptenModuleOptions
+  loadWasmBinary: boolean
   respondToGlobalEvents: boolean
   rom: ResolvableFile[] = []
   shader: ResolvableFile[] = []
@@ -127,6 +128,7 @@ export class EmulatorOptions {
 
     this.emscriptenModule = options.emscriptenModule ?? {}
     this.respondToGlobalEvents = options.respondToGlobalEvents ?? true
+    this.loadWasmBinary = options.loadWasmBinary ?? true
     this.signal = options.signal
     this.size = options.size ?? 'auto'
     this.sramType = options.sramType ?? 'srm'
@@ -171,7 +173,7 @@ export class EmulatorOptions {
     }
     for (const key in this.cache) {
       const field = key as keyof typeof this.cache
-      if (this.cache[field]) {
+      if (this.cache[field] && !(field === 'core' && !this.loadWasmBinary)) {
         const cache = EmulatorOptions.cacheStorage[field]
         const cacheKey: any = this.nostalgistOptions[field]
         if (isValidCacheKey(cacheKey)) {
@@ -266,26 +268,34 @@ export class EmulatorOptions {
 
   private async updateCore() {
     const { core, resolveCoreJs, resolveCoreWasm } = this.nostalgistOptions
+    const shouldLoadWasm = this.loadWasmBinary
 
-    if (typeof core === 'object' && 'js' in core && 'name' in core && 'wasm' in core) {
-      const [js, wasm] = await Promise.all([ResolvableFile.create(core.js), ResolvableFile.create(core.wasm)])
-      this.core = { js, name: core.name, wasm }
+    if (typeof core === 'object' && 'js' in core && 'name' in core) {
+      const jsPromise = ResolvableFile.create(core.js)
+      const wasmPromise =
+        shouldLoadWasm && 'wasm' in core && core.wasm ? ResolvableFile.create(core.wasm) : Promise.resolve(undefined)
+      const [js, wasm] = await Promise.all([jsPromise, wasmPromise])
+      this.core = { js, name: core.name, ...(wasm ? { wasm } : {}) }
       return
     }
 
-    const [coreResolvable, coreWasmResolvable] = await Promise.all(
-      [resolveCoreJs, resolveCoreWasm].map((resolver) =>
-        ResolvableFile.create({
+    const coreResolvablePromise = ResolvableFile.create({
+      raw: core,
+      signal: this.signal,
+      urlResolver: () => resolveCoreJs(core, this.nostalgistOptions),
+    })
+    const coreWasmPromise = shouldLoadWasm
+      ? ResolvableFile.create({
           raw: core,
           signal: this.signal,
-          urlResolver: () => resolver(core, this.nostalgistOptions),
-        }),
-      ),
-    )
+          urlResolver: () => resolveCoreWasm(core, this.nostalgistOptions),
+        })
+      : Promise.resolve(undefined)
+    const [coreResolvable, coreWasmResolvable] = await Promise.all([coreResolvablePromise, coreWasmPromise])
 
     const name = typeof core === 'string' ? core : coreResolvable.name
 
-    this.core = { js: coreResolvable, name, wasm: coreWasmResolvable }
+    this.core = { js: coreResolvable, name, ...(coreWasmResolvable ? { wasm: coreWasmResolvable } : {}) }
   }
 
   private async updateRom() {
