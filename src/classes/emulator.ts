@@ -120,7 +120,9 @@ export class Emulator {
     try {
       exit(statusCode)
     } catch {}
-    JSEvents.removeAllEventListeners()
+    if (typeof JSEvents?.removeAllEventListeners === 'function') {
+      JSEvents.removeAllEventListeners()
+    }
     this.removeGlobalDOMEventListeners()
     uninstallSetImmediatePolyfill()
     this.gameStatus = 'terminated'
@@ -576,6 +578,9 @@ export class Emulator {
 
   private updateKeyboardEventHandlers() {
     const { JSEvents } = this.getEmscripten()
+    if (!JSEvents?.eventHandlers || !Array.isArray(JSEvents.eventHandlers)) {
+      return
+    }
     const { element, respondToGlobalEvents } = this.options
     if (!respondToGlobalEvents) {
       if (!element.getAttribute('tabindex')) {
@@ -597,6 +602,9 @@ export class Emulator {
     )
     for (const globalKeyboardEventHandler of globalKeyboardEventHandlers) {
       const { eventTypeString, handlerFunc, target } = globalKeyboardEventHandler
+      if (typeof JSEvents.registerOrRemoveHandler !== 'function') {
+        return
+      }
       JSEvents.registerOrRemoveHandler({ eventTypeString, target })
       JSEvents.registerOrRemoveHandler({
         ...globalKeyboardEventHandler,
